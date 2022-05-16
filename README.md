@@ -1,2 +1,2 @@
 # prvdns
-Private DNS Server
+Private DNS
