@@ -31,6 +31,9 @@ func Query(m *dns.Msg) {
 		case dns.TypeMX:
 			if len(record.MX.Destination) > 0 {
 				rr, err = dns.NewRR(fmt.Sprintf("%s MX %s %s", q.Name, "10", record.MX))
+			} else {
+				fmt.Printf("No MX record found for %s\n", q.Name)
+
 			}
 
 			// case dns.TypeAAAA:
@@ -39,9 +42,10 @@ func Query(m *dns.Msg) {
 			// case dns.TypeTXT:
 			// case dns.TypePTR:
 			// case dns.TypeSRV:
+
 		}
 
-		fmt.Printf("hostname: %s\n", q.Name)
+		// fmt.Printf("Request: %s\n", m.Question[0].String())
 
 		if rr != nil {
 			if err == nil {
@@ -139,6 +143,14 @@ func main() {
 	//Load configuration
 	config = loadConfig(config)
 
+	if config.Server.Port == "" {
+		config.Server.Port = "5053"
+	}
+
+	if config.Server.Address == "" {
+		config.Server.Address = "0.0.0.0"
+	}
+
 	//Catch ctrl+c and save before exiting
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
@@ -148,10 +160,6 @@ func main() {
 		os.Exit(1)
 	}()
 
-	// Some Default Records
-	// config.Records.Domains = append(config.Records.Domains, record(dns.TypeA, "gw.ear.pm", "192.168.178.1", "60", ""))
-	// config.Records.Domains = append(config.Records.Domains, record(dns.TypeA, "store.ear.pm", "192.168.178.7", "60", ""))
-
 	//Add Test Record
 	addNewRecord(record(dns.TypeA, "atlas.ear.pm.", "192.168.178.30", "60", ""))
 
@@ -159,7 +167,10 @@ func main() {
 	dns.HandleFunc(".", HandleRequest) //Make patern configurable
 
 	// Start server
-	dnsserver := &dns.Server{Addr: ":5053", Net: "udp"}
+	//setup DNS Server
+	dnsserver := &dns.Server{Addr: config.Server.Address + ":" + config.Server.Port, Net: "udp"}
+
+	//start DNS Server
 	err := dnsserver.ListenAndServe()
 	defer dnsserver.Shutdown()
 
